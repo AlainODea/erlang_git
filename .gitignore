@@ -1,0 +1,9 @@
+.DS_Store
+ebin/
+priv/log
+Mnesia.*
+erl_crash.dump
+.project
+*.tmproj
+.settings/
+deps/
