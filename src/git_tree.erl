@@ -9,7 +9,6 @@ parse(#object{type = tree, data = Rest}) ->
 	#tree{entries = Entries}.
 
 parse_entries(<<Mode:6/bytes, " ", PathSHA1Rest/binary>>) ->
-	{Path, <<SHA1:160/bits, Rest/bits>>} = cstring:from_binary(PathSHA1Rest),
-	[#tree_entry{mode = Mode, path = Path, sha1 = SHA1} | parse_entries(Rest)];
-	
+    {Path, <<SHA1:160/bits, Rest/bits>>} = git_string:null_split(PathSHA1Rest),
+    [#tree_entry{mode=Mode, path=Path, sha1=SHA1}| parse_entries(Rest)];
 parse_entries(<<_Rest/binary>>) -> [].

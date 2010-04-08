@@ -4,8 +4,10 @@
 
 -export([parse/1]).
 
+parse(TreeObject = #object{type = tree}) -> git_tree:parse(TreeObject);
+parse(CommitObject = #object{type = commit}) -> git_commit:parse(CommitObject);
 parse(ObjectData) when is_binary(ObjectData) ->
-	{TypeAndSize, Data} = cstring:from_binary(ObjectData),
-	{Type, SizeBin} = cstring:split(TypeAndSize),
-	{Size, ""} = string:to_integer(binary_to_list(SizeBin)),
-	#object{type = Type, size = Size, data = Data}.
+    {Type, SizeData} = git_string:space_split(ObjectData),
+    {SizeBin, Data} = git_string:null_split(SizeData),
+    {Size, ""} = string:to_integer(binary_to_list(SizeBin)),
+    parse(#object{type = binary_to_existing_atom(Type, utf8), size = Size, data = Data}).

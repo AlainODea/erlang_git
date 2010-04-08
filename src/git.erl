@@ -28,4 +28,7 @@ sha(<<CommitSHA/binary>>) -> drop_last(CommitSHA).
 
 filename(<<Ref/binary>>) -> [".git/", drop_last(Ref)].
 
-drop_last(String) -> lists:reverse(tl(lists:reverse(binary_to_list(String)))).
+drop_last(String) ->
+	Size = byte_size(String) - 1,
+	<<Trimmed:Size/bytes, "\n">> = String,
+	binary_to_list(Trimmed).

@@ -1,5 +1,5 @@
 -record(object, {size :: integer(), data :: binary(), type :: atom()}).
--record(commit, {author :: string(), committer :: string(), comment :: binary()}).
+-record(commit, {tree :: binary(), parent :: binary(), author :: string(), committer :: string(), comment :: binary()}).
 -record(blob, {content :: binary()}).
 
 % I can almost definitely store the mode in less than 6 bytes
