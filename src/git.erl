@@ -10,7 +10,7 @@ show_sha(<<CommitSHAHead:2/binary, CommitSHATail:38/binary, "\n">>) ->
     show_commit(binary_to_list(CommitSHAHead), binary_to_list(CommitSHATail)).
 
 show_commit(CommitSHAHead, CommitSHATail) ->
-    inflate_file([".git/objects", CommitSHAHead, CommitSHATail]).
+    inflate_file([".git/objects", "/" ++ CommitSHAHead, "/" ++ CommitSHATail]).
 
 inflate_file(File) ->
     {ok, Binary} = file:read_file(File),
@@ -19,7 +19,7 @@ inflate_file(File) ->
 inflate(Binary) ->
     Z = zlib:open(),
     ok = zlib:inflateInit(Z),
-    zlib:inflate(Z, Binary).
+    iolist_to_binary(zlib:inflate(Z, Binary)).
 
 sha(<<"ref: ", Ref/binary>>) ->
     {ok, SHA} = file:read_file(filename(Ref)),
