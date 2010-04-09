@@ -9,11 +9,14 @@ head() ->
 	ref_or_sha(RefOrSHA).
 
 ref_or_sha(<<"ref: ", Ref/binary>>) ->
-	{ok, SHA} = file:read_file(ref_to_file(Ref)),
+	RefFile = [".git/", binary_to_list(rtrim(Ref))],
+	{ok, SHA} = file:read_file(RefFile),
 	sha(rtrim(SHA));
-ref_or_sha(<<CommitSHA/binary>>) -> sha(CommitSHA).
+ref_or_sha(<<CommitSHA:40/bytes,$\n>>) -> sha(CommitSHA);
+ref_or_sha(<<CommitSHA:40/bytes    >>) -> sha(CommitSHA).
 
-sha(<<SHAHead:2/binary, SHATail:38/binary>>) ->
+sha(<<SHA:24/bytes>>) -> sha(sha1_unpack(SHA)); 
+sha(<<SHAHead:2/bytes, SHATail:38/bytes>>) ->
     inflate_file([".git/objects/", binary_to_list(SHAHead), "/" ++ binary_to_list(SHATail)]).
 
 inflate_file(File) ->
@@ -26,8 +29,6 @@ inflate(Binary) ->
     ok = zlib:inflateInit(Z),
     iolist_to_binary(zlib:inflate(Z, Binary)).
 
-ref_to_file(<<Ref/binary>>) -> [".git/", binary_to_list(rtrim(Ref))].
-
 %% produce Erlang records from Git objects
 object(ObjectData) when is_binary(ObjectData) ->
     {Type, SizeData} = space_split(ObjectData),
@@ -38,13 +39,14 @@ object(ObjectData) when is_binary(ObjectData) ->
 %% branch to produce record representation
 represent(#object{type = tree, data = Entries}) -> #tree{entries = tree_entries(Entries)};
 represent(#object{type = commit, data = Rest}) -> commit_tree(#commit{}, Rest);
+represent(#object{type = tag, data = Comment}) -> #tag{comment = Comment};
 represent(#object{type = blob, data = Content}) -> #blob{content = Content}.
 
 %% commit object handling
 commit_tree(C = #commit{}, <<"tree ", Tree:40/bytes, $\n, Rest/bits>>) ->
-	commit_parent(C#commit{tree = Tree}, Rest).
+	commit_parent(C#commit{tree = sha1_pack(Tree)}, Rest).
 commit_parent(C = #commit{}, <<"parent ", Parent:40/bytes, $\n, Rest/bits>>) ->
-	commit_author(C#commit{parent = Parent}, line_split(Rest)).
+	commit_author(C#commit{parent = sha1_pack(Parent)}, line_split(Rest)).
 commit_author(C = #commit{}, {<<"author ", Author/bits>>, Rest}) ->
 	commit_committer(C#commit{author = Author}, line_split(Rest)).
 commit_committer(C = #commit{}, {<<"committer ", Committer/bits>>, Rest}) ->
@@ -54,7 +56,7 @@ commit_comment(C = #commit{}, Comment) ->
 
 %% tree object handling
 tree_entries(<<Mode:6/bytes, " ", PathSHA1Rest/binary>>) ->
-    {Path, <<SHA1:160/bits, Rest/bits>>} = null_split(PathSHA1Rest),
+    {Path, <<SHA1:24/bytes, Rest/bits>>} = null_split(PathSHA1Rest),
     [#tree_entry{mode=Mode, path=Path, sha1=SHA1} | tree_entries(Rest)];
 tree_entries(<<_Rest/binary>>) -> [].
 
@@ -88,3 +90,7 @@ rtrim(String) ->
 	Size = byte_size(String) - 1,
 	<<Trimmed:Size/bytes, "\n">> = String,
 	Trimmed.
+
+sha1_pack(<<Bin:40/bytes>>) -> term_to_binary(httpd_util:hexlist_to_integer(binary_to_list(Bin))).
+
+sha1_unpack(<<Bin:24/bytes>>) -> list_to_binary(httpd_util:integer_to_hexlist(binary_to_term(Bin))).

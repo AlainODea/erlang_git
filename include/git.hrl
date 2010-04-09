@@ -1,4 +1,4 @@
--type sha1() :: <<_:40>>.
+-type sha1() :: <<_:24>>.
 
 % I can almost definitely store the mode in less than 6 bytes
 % it's in octal format and gets stored as an unigned long in git's C code
@@ -23,7 +23,7 @@
 }).
 
 -record(tag, {
-	object :: sha1()
+	comment :: sha1()
 }).
 
 -record(tree_entry, {

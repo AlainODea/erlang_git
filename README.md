@@ -1,9 +1,16 @@
 Erlang Git: an experiment with Erlang binary parsing
 ====================================================
 
+Example Usage
+-------------
+Get details of the HEAD^ commit:  
+    rr("include/git.hrl").
+    #commit{parent = P} = git:object(git:head()).
+    git:object(git:sha(P)).
+
 Tree File Format
 ----------------
-type(*,c) size(*,d)\0mode(6,d)\0 filename\0
+    type(*,c) size(*,d)\0mode(6,d)\0 filename\0
 
 File Mode (man 2 stat)
 ----------------------
